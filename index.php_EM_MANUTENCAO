@@ -1,0 +1,16 @@
+<div>
+	<img src="https://aultimahomenagem.prefeitura.sp.gov.br/wp-content/uploads/2020/05/logo_principal.png">
+	<br>
+	<br>
+	<center><span>em desenvolvimento</span></center>
+</div>
+<style type="text/css">
+	div {
+		position: absolute;
+		left: calc(50% - 155px);
+		top: calc(50% - 100px);
+	}
+	span {
+		font-family: sans-serif;
+	}
+</style>

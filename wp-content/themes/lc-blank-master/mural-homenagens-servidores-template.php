@@ -1,0 +1,215 @@
+<?php
+/*
+Template Name: Mural de Homenagens Servidores
+*/
+// require_once('homenagem.php');
+
+get_header(); 
+if ( have_posts() ) : while ( have_posts() ) : the_post(); ?>
+
+		<?php
+		the_content();
+$vue = get_site_url() == 'https://aultimahomenagem.prefeitura.sp.gov.br' ? 'vue.min.js' : 'vue.js';
+
+$localhosting = get_site_url() == 'http://localhost/www/aultimahomenagem';
+// include local
+if ($localhosting)
+{
+	echo "<script>console.log('localhost');</script>";
+	echo "<script type='text/javascript' src='../wp-content/themes/lc-blank-master/{$vue}'></script>";
+	echo "<script type='text/javascript' src='../wp-content/themes/lc-blank-master/axios.min.js'></script>";
+}
+else
+{
+	echo "<script type='text/javascript' src='../wp-content/themes/lc-blank-master/{$vue}'></script>";
+	echo "<script type='text/javascript' src='../wp-content/themes/lc-blank-master/axios.min.js'></script>";
+}
+
+ ?>
+ <!-- BOOTSTRAP -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+
+<div id="app">
+	<div id="homenagem-tooltip" :class="(hover || tooltipHover) ? 'visivel' : 'invisivel'" :style="'left: ' + posX + 'px; top: ' + posY + 'px;'" @mouseover="tooltipHover = true" @mouseleave="tooltipHover = false">
+		<a :href="paginaHomenagem + homenagemAtual.id">
+			<div class="row">
+				<div class="col">
+					<div class="round-img">
+						<img :src="fotoSrc + homenagemAtual.id + '_c.jpg'">
+					</div>
+				</div>
+				<div class="col">
+					<h3><center>{{homenagemAtual.nome}}</center></h3>
+					<h4><center>{{homenagemAtual.idade}} anos</center></h4>
+				</div>			
+			</div>
+		</a>
+		<div class="row">
+			<div class="col">
+				<p align="center">{{homenagemAtual.epigrafe}}</p>
+			</div>
+		</div>
+	</div>
+
+	<div id="mural-servidores" class="row dslc-modules-section-wrapper">
+		<div
+			class="col card"
+			v-for="homenagem in homenagens"
+			>
+			<!-- <a :href="homenagem.servidor === '1' ? false : paginaHomenagem + homenagem.id">
+					<div class="row">
+						<img :src="homenagem.flor" class="mx-auto" @mousemove="selecionaHomenagem($event, homenagem)"
+			@mouseleave="hover = false">
+					</div>
+					<div class="row">
+						<span class="mx-auto">{{homenagem.nome}}</span>
+					</div>
+			</a> -->
+			<a :href="homenagem.servidor === '1' ? false : paginaHomenagem + homenagem.id">
+					<div class="row">
+						<div class="col col-3 p-0">
+							<img :src="homenagem.flor" class="mx-auto" @mousemove="selecionaHomenagem($event, homenagem)" @mouseleave="hover = false">
+						</div>
+						<div class="col col-9">
+							<span class="mx-auto">{{homenagem.nome}}</span>
+							<br>
+							<span v-if="homenagem.idade > 0">{{homenagem.idade}} anos</span>
+							<br v-if="homenagem.idade > 0">
+							<span>{{homenagem.funcao}}</span>
+							<br>
+							<span>{{homenagem.unidade}}</span>
+						</div>
+					</div>					
+			</a>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+	const listaHomenagens = "<?php echo $localhosting ? './lista-homenagens-servidores/' : '/lista-homenagens-servidores/'; ?>";
+	
+	var app = new Vue({
+		el: '#app',
+		data: {
+			paginaHomenagem: './homenagem/?id=',
+			fotoSrc: './wp-content/uploads/2020/fotos/',
+			homenagens: [],
+			homenagemAtual: '',
+			hover: false,
+			tooltipHover: false,
+			flores: [
+				'https://aultimahomenagem.prefeitura.sp.gov.br/wp-content/uploads/2020/05/flor_vinho.png',
+				'https://aultimahomenagem.prefeitura.sp.gov.br/wp-content/uploads/2020/05/flor_verde.png',
+				'https://aultimahomenagem.prefeitura.sp.gov.br/wp-content/uploads/2020/05/flor_azul.png',
+				'https://aultimahomenagem.prefeitura.sp.gov.br/wp-content/uploads/2020/05/flor_amarela.png'
+			],
+			posX: 0,
+			posY: 0,
+			ultimaSorteada: 0,
+			loading: true
+		},
+		methods: {
+			pegaFlor: function() {
+				// Escolhe uma flor aleatória e retorna a url
+				let sorteada = Math.floor(Math.random()*this.flores.length)
+				return this.flores[sorteada]
+			},
+			selecionaHomenagem: function(event, homenagem) {
+				if(homenagem.servidor === '1'){
+					return
+				}
+				this.hover = true
+				this.homenagemAtual = homenagem
+				// Atualiza posição da tooltip
+				this.calculaPosicao(event.clientX, event.clientY)
+			},
+			calculaPosicao: function(xPos, yPos) {
+				let area = 280;
+				this.posX = (xPos + area > window.innerWidth ? window.innerWidth - area : xPos) + 5
+				this.posY = (yPos + area > window.innerHeight ? window.innerHeight - area : yPos) + 5
+			}
+		},
+		mounted() {
+			axios
+				.get(listaHomenagens)
+				.then(response => {
+					this.homenagens = response.data.homenagens
+					for(homenagem in this.homenagens) {
+						// Calcula idade do homenageado
+						let idade = new Date(this.homenagens[homenagem].data_falecimento) - new Date(this.homenagens[homenagem].data_nascimento);
+						idade = Math.floor(idade / 31536000000)
+						if(!(this.homenagens[homenagem].idade > 0))
+							this.homenagens[homenagem].idade = idade > 0 ? idade : 0
+						this.homenagens[homenagem].flor = this.pegaFlor()
+
+						this.homenagens[homenagem].epigrafe = '"'+this.homenagens[homenagem].epigrafe+'"'
+					}
+				})
+				.catch(error => {
+					console.error("ERRO AO OBTER HOMENAGENS")
+					console.log(error)
+				})
+				.finally(() => this.loading = false)
+		}
+	})
+</script>
+<style type="text/css">
+	#homenagem-tooltip {
+		font-family: 'GeosansLight', sans-serif;
+		position: fixed;
+		overflow: hidden;
+		display: block;
+		z-index: 2;
+		width: 250px;
+		max-height: 250px;
+		border: 1px solid #005080;
+		color: #005080;
+		font-size: 14px;
+		background-color: white;
+		padding: 1em;
+	}
+	#homenagem-tooltip .round-img {
+		width: 100px;
+		height: 100px;
+		display: inline-block;
+		margin: 0;
+		padding: 0;
+		border-radius: 50%;	
+		overflow: hidden;	
+	}
+	#homenagem-tooltip h3 {
+		font-size: 16px;
+		margin: 0 -15px;
+	}
+	#homenagem-tooltip h4 {
+		font-size: 14px;		
+	}	
+	#homenagem-tooltip p {
+		color: black;
+		font-size: 12px;
+		padding: 2em;
+	}
+	.visivel {
+		visibility: visible;
+		opacity: 1;
+		transition: visibility 0.1s, opacity 0.3s linear;
+	}
+	.invisivel {
+		visibility: hidden;
+		opacity: 0;
+		transition: visibility 0.1s, opacity 0.3s linear;
+	}
+	.info-box {
+		/*margin-right: 20px;
+		margin-bottom: 20px;*/
+	}
+</style>
+
+
+<!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> -->
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script> -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<?php endwhile; ?>
+	<?php endif; ?>
+<?php get_footer(); ?>
